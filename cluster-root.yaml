@@ -17,9 +17,12 @@ spec:
   source:
     repoURL: https://github.com/alecuvalentin22/gcp-setup.git
     targetRevision: HEAD
+    # Repo root, non-recursive. Do NOT add `directory: {recurse: false}` here:
+    # false is the API default, so the server drops the field, git keeps
+    # asserting it, and this self-managing Application sits permanently
+    # OutOfSync against itself. Never declare defaults in a self-managed
+    # manifest.
     path: .
-    directory:
-      recurse: false # top level only; apps/ is owned by the ApplicationSet
 
   destination:
     server: https://kubernetes.default.svc

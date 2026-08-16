@@ -34,9 +34,22 @@ kind: HTTPRoute
 metadata:
   name: podinfo
 spec:
+  # Every field below that looks redundant is a server-side default. Omit them
+  # and the API server fills them in, git no longer matches live, and ArgoCD
+  # reports permanent OutOfSync. Declare defaults the server ADDS; never declare
+  # defaults the server DROPS (see cluster-root.yaml).
   parentRefs:
-    - name: podinfo-gw
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: podinfo-gw
   rules:
-    - backendRefs:
-        - name: podinfo
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: podinfo
           port: 80
+          weight: 1

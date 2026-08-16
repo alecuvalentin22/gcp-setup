@@ -1,0 +1,22 @@
+# Managed Service for Prometheus scrape config.
+#
+# This is the managed replacement for a self-hosted kube-prometheus-stack:
+# no Prometheus server, no Alertmanager, no Grafana, no PVCs, no retention
+# tuning. You declare WHAT to scrape; Google runs the collectors and stores the
+# series in Monarch. PromQL still works, and metrics are queryable from Cloud
+# Monitoring.
+#
+# The CRD is installed by GKE when managed_prometheus is enabled on the cluster
+# (Terraform: modules/gke -> enable_managed_prometheus = true).
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: podinfo
+spec:
+  selector:
+    matchLabels:
+      app: podinfo
+  endpoints:
+    - port: http
+      interval: 30s
+      path: /metrics

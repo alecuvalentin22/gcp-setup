@@ -1,0 +1,44 @@
+# Git directory generator: every subdirectory of apps/ becomes an Application,
+# deployed to a namespace named after the directory. Adding an app = adding a
+# directory and committing.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: cluster-apps
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+
+  generators:
+    - git:
+        repoURL: https://github.com/alecuvalentin22/gcp-setup.git
+        revision: HEAD
+        directories:
+          - path: apps/*
+          # Move an app here to disable it without deleting it.
+          - path: disabled-apps/*
+            exclude: true
+
+  template:
+    metadata:
+      name: '{{.path.basename}}'
+    spec:
+      project: default
+
+      source:
+        repoURL: https://github.com/alecuvalentin22/gcp-setup.git
+        targetRevision: HEAD
+        path: '{{.path.path}}'
+
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{.path.basename}}'
+
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

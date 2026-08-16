@@ -1,0 +1,35 @@
+# The ONLY file applied by hand:
+#     kubectl apply -f cluster-root.yaml
+#
+# Watches the repo root non-recursively, so it picks up every top-level
+# Application / ApplicationSet here — INCLUDING ITSELF. After this one command
+# the bootstrap is declarative.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cluster-root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/alecuvalentin22/gcp-setup.git
+    targetRevision: HEAD
+    path: .
+    directory:
+      recurse: false # top level only; apps/ is owned by the ApplicationSet
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # Large CRDs exceed the 262144-byte annotation limit with client-side apply.
+      - ServerSideApply=true

@@ -1,0 +1,42 @@
+# Gateway API — the successor to Ingress.
+#
+# The split Ingress could never express:
+#   Gateway   = the load balancer itself. Owned by the platform team.
+#   HTTPRoute = routing rules. Owned by app teams, can live in other namespaces.
+#
+# With Ingress, both concerns are jammed into one object, so any team that
+# wanted a route needed edit rights on the object that owns the LB.
+#
+# Deployed alongside the Ingress in podinfo.yaml on purpose — you end up with
+# TWO load balancers serving the same pods, which makes the comparison concrete.
+# Delete one when you are done comparing (forwarding-rule quota is 5).
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: podinfo-gw
+spec:
+  # GKE GatewayClasses:
+  #   gke-l7-global-external-managed    global external ALB  (this one)
+  #   gke-l7-regional-external-managed  regional external
+  #   gke-l7-rilb                       internal, regional
+  # Verify what exists with: kubectl get gatewayclass
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: podinfo
+spec:
+  parentRefs:
+    - name: podinfo-gw
+  rules:
+    - backendRefs:
+        - name: podinfo
+          port: 80

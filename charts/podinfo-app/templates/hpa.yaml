@@ -1,0 +1,37 @@
+{{- if .Values.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "podinfo-app.fullname" . }}
+  labels:
+    {{- include "podinfo-app.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "podinfo-app.fullname" . }}
+
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+
+  metrics:
+    # averageUtilization is a PERCENTAGE OF THE REQUEST, not of node capacity.
+    # With requests.cpu=50m and target 70%, the HPA scales out when average pod
+    # usage exceeds 35m. Set requests too high and the HPA never triggers; set
+    # them too low and it scales out constantly. This is why requests matter
+    # more than limits.
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+
+  behavior:
+    scaleDown:
+      # Default is 300s. Longer windows prevent flapping when load is spiky —
+      # scale up fast, scale down slowly.
+      stabilizationWindowSeconds: 300
+    scaleUp:
+      stabilizationWindowSeconds: 30
+{{- end }}

@@ -1,0 +1,60 @@
+# BASE values — shared by every environment.
+#
+# Helm always loads this file first, then layers any -f file on top
+# (ArgoCD: spec.source.helm.valueFiles). Later files win, key by key, and
+# merging is deep for maps but REPLACES lists entirely — a common surprise.
+#
+# Put here only what is genuinely environment-independent.
+
+replicaCount: 1
+
+image:
+  # Public image today. After you push your own to Artifact Registry, this
+  # becomes:
+  #   repository: us-central1-docker.pkg.dev/<PROJECT>/lab-docker/podinfo
+  # and image PROMOTION between environments = changing only the tag in
+  # values-dev.yaml / values-prod.yaml, never the chart.
+  repository: ghcr.io/stefanprodan/podinfo
+  tag: "6.7.1"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+containerPort: 9898
+
+# Requests drive TWO independent systems, which is why they matter more than
+# limits:
+#   1. the SCHEDULER decides node placement from requests
+#   2. the HPA computes utilisation as usage/REQUEST, so a wrong request makes
+#      autoscaling meaningless
+resources:
+  requests:
+    cpu: 25m
+    memory: 32Mi
+  limits:
+    # No CPU limit on purpose: a CPU limit throttles rather than kills, and
+    # throttling under burst is usually worse than briefly using spare CPU.
+    # A MEMORY limit is essential — exceeding it is what produces OOMKilled.
+    memory: 128Mi
+
+# Liveness  = "is it broken?"   failing -> kubelet RESTARTS the container
+# Readiness = "can it serve?"   failing -> pod removed from Service endpoints,
+#                                          but NOT restarted
+# Conflating them is a classic outage: a liveness probe that fails under load
+# restarts a pod that was merely busy, making the load worse.
+probes:
+  liveness:
+    path: /healthz
+  readiness:
+    path: /readyz
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+
+env:
+  PODINFO_UI_COLOR: "#34577c"

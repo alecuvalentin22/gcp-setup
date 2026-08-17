@@ -1,0 +1,16 @@
+# A hand-written local chart rather than an umbrella wrapping the upstream
+# podinfo chart. Two reasons: no external dependency version to pin or drift,
+# and you can actually read every template instead of inheriting someone else's.
+#
+# Use the umbrella pattern (dependencies: + upstream repo) for third-party
+# software you do not want to author; use this pattern for your own apps.
+apiVersion: v2
+name: podinfo-app
+description: podinfo deployed per-environment, to demonstrate Helm values layering
+type: application
+
+# version    = the CHART version. Bump when templates change.
+# appVersion = the APPLICATION version. Informational; the image tag is what
+#              actually decides what runs (see values.yaml).
+version: 0.1.0
+appVersion: "6.7.1"

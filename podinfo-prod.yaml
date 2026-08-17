@@ -1,0 +1,41 @@
+# Identical chart, different values. The only differences from podinfo-dev.yaml
+# are valueFiles, namespace and releaseName — which is exactly the point: one
+# chart, N environments, no copy-pasted manifests.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: podinfo-prod
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/alecuvalentin22/gcp-setup.git
+    targetRevision: HEAD
+    path: charts/podinfo-app
+    helm:
+      valueFiles:
+        - values-prod.yaml
+      releaseName: prod
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: podinfo-prod
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+
+  # The HPA owns replica count in prod. Without this, ArgoCD sees the HPA's
+  # scaled count as drift from the chart and selfHeal fights the autoscaler.
+  # (The chart also omits `replicas` when autoscaling is on — belt and braces,
+  # because either alone is a subtle production incident.)
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

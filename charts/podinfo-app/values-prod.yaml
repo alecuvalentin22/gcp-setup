@@ -1,0 +1,33 @@
+# PROD overrides.
+#
+# IMAGE PROMOTION: prod pins an explicit, immutable tag. It is NOT "latest" and
+# NOT the same floating tag dev tracks. Promotion = a commit changing this one
+# line to a tag already proven in dev, which makes the promotion reviewable,
+# auditable and revertible via `git revert`.
+#
+# Better still in production: pin by DIGEST (sha256:...), since tags are mutable
+# and can be repointed at different content after the fact.
+
+replicaCount: 2
+
+image:
+  tag: "6.7.1"
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+
+# Prod scales on load; dev does not. The HPA owns replicaCount once enabled, so
+# the value above becomes only the initial count.
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 70
+
+env:
+  PODINFO_UI_COLOR: "#c62828" # red = prod
+  PODINFO_UI_MESSAGE: "PRODUCTION environment"

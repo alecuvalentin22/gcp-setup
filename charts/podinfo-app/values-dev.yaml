@@ -1,0 +1,24 @@
+# DEV overrides. Layered on top of values.yaml.
+#
+# Only differences from base belong here. If a key is identical to base, delete
+# it — duplicated values silently drift apart over time and you end up unable to
+# tell what is deliberately different.
+
+replicaCount: 1
+
+# Dev runs whatever just built. In a real pipeline CI writes this line on every
+# merge to main (ArgoCD Image Updater does exactly that write-back).
+image:
+  tag: "6.7.1"
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+
+autoscaling:
+  enabled: false
+
+env:
+  PODINFO_UI_COLOR: "#2e7d32" # green = dev, visible at a glance in the UI
+  PODINFO_UI_MESSAGE: "DEV environment"

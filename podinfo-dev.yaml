@@ -1,0 +1,38 @@
+# Helm through GitOps.
+#
+# ArgoCD does NOT run `helm install`. It runs `helm template` and applies the
+# result, so there are no Helm releases in the cluster and no `helm rollback`.
+# Rollback is `git revert` — the desired state lives in git, not in a Helm
+# release secret. That is the whole integration story for section 5.
+#
+# Same chart as prod; only valueFiles and namespace differ.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: podinfo-dev
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/alecuvalentin22/gcp-setup.git
+    targetRevision: HEAD
+    path: charts/podinfo-app
+    helm:
+      # values.yaml is ALWAYS the base — Helm loads it implicitly. Listing it
+      # here would be redundant. Files below layer on top, last wins.
+      valueFiles:
+        - values-dev.yaml
+      releaseName: dev
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: podinfo-dev
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

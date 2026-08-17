@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "podinfo-app.fullname" . }}
+  labels:
+    {{- include "podinfo-app.labels" . | nindent 4 }}
+spec:
+  {{- /*
+    Omit replicas entirely when the HPA owns it. If both the HPA and this field
+    set replicas, they fight: Helm/ArgoCD reverts to the chart value, the HPA
+    scales back up, forever. This is THE most common Helm+HPA bug.
+  */}}
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+
+  selector:
+    matchLabels:
+      {{- include "podinfo-app.selectorLabels" . | nindent 6 }}
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # maxUnavailable 0 = never drop below desired capacity during a rollout;
+      # new pods must go Ready before old ones are removed. Combined with a
+      # readiness probe this is what makes a deploy zero-downtime.
+      maxUnavailable: 0
+      maxSurge: 1
+
+  template:
+    metadata:
+      labels:
+        {{- include "podinfo-app.selectorLabels" . | nindent 8 }}
+      annotations:
+        # Changing a ConfigMap does not restart pods. Hashing config into an
+        # annotation changes the pod template, which DOES trigger a rollout.
+        # Left here as the idiom even though this chart has no ConfigMap yet.
+        checksum/values: {{ .Values | toYaml | sha256sum }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.containerPort }}
+          {{- with .Values.env }}
+          env:
+            {{- range $k, $v := . }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path }}
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

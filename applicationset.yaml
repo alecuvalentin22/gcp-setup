@@ -35,6 +35,19 @@ spec:
         server: https://kubernetes.default.svc
         namespace: '{{.path.basename}}'
 
+      # GKE controllers rewrite cloud.google.com/neg and append neg-status to
+      # Services behind an Ingress/Gateway. The annotation is REQUIRED for
+      # Ingress + ClusterIP, so it must stay in git — but its value is owned by
+      # the controller. Ignore just that field rather than the whole object.
+      #
+      # JSON-pointer escaping: "/" inside a key becomes "~1", so
+      # cloud.google.com/neg -> cloud.google.com~1neg
+      ignoreDifferences:
+        - group: ""
+          kind: Service
+          jsonPointers:
+            - /metadata/annotations/cloud.google.com~1neg
+
       syncPolicy:
         automated:
           prune: true

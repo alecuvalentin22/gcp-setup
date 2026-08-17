@@ -46,16 +46,22 @@ apiVersion: v1
 kind: Service
 metadata:
   name: podinfo
-  # NO cloud.google.com/neg annotation here on purpose.
-  #
-  # On a VPC-native cluster GKE creates the NEG automatically for any Service
-  # backing an Ingress or Gateway, and it OWNS that annotation — it rewrites the
-  # value to {"exposed_ports":{"80":{}}} and adds neg-status alongside. Declaring
-  # '{"ingress": true}' in git therefore guarantees a permanent OutOfSync: git
-  # asserts one value, the controller writes another, forever.
-  #
-  # Container-native LB still happens; verify with:
-  #   gcloud compute network-endpoint-groups list
+  annotations:
+    # REQUIRED for Ingress in front of a ClusterIP Service. Without it the
+    # loadbalancer-controller refuses to translate:
+    #   "service is type ClusterIP, expected NodePort or LoadBalancer when not
+    #    using NEGs"
+    # (The Gateway controller does NOT need this — it manages its own NEGs. So
+    # dropping the annotation breaks Ingress while Gateway keeps working, which
+    # makes the failure look unrelated to the annotation.)
+    #
+    # GKE then REWRITES this value to {"exposed_ports":{"80":{}}} and adds a
+    # neg-status annotation. Git can never match live, so the Application must
+    # ignore this field — see ignoreDifferences in applicationset.yaml.
+    #
+    # Required-but-controller-owned is the awkward case: you cannot omit it and
+    # you cannot declare it cleanly. ignoreDifferences is the answer.
+    cloud.google.com/neg: '{"ingress": true}'
 spec:
   type: ClusterIP
   selector:

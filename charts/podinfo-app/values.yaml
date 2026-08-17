@@ -9,12 +9,16 @@
 replicaCount: 1
 
 image:
-  # Public image today. After you push your own to Artifact Registry, this
-  # becomes:
-  #   repository: us-central1-docker.pkg.dev/<PROJECT>/lab-docker/podinfo
-  # and image PROMOTION between environments = changing only the tag in
-  # values-dev.yaml / values-prod.yaml, never the chart.
-  repository: ghcr.io/stefanprodan/podinfo
+  # Now pulling from OUR Artifact Registry, not the public internet.
+  #
+  # ⚠️ The project ID is session-specific in the playground. In a real setup this
+  # would be a stable project, or injected via ArgoCD Helm parameters rather than
+  # committed.
+  #
+  # Nodes can pull without any imagePullSecret: the node service account holds
+  # roles/artifactregistry.reader, and GKE authenticates to Artifact Registry
+  # with the node's identity. No registry credentials anywhere in the cluster.
+  repository: us-central1-docker.pkg.dev/kkgcplabs01-008/lab-docker/podinfo
   tag: "6.7.1"
   pullPolicy: IfNotPresent
 

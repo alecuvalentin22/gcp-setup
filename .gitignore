@@ -1,6 +1,8 @@
 # Local Semaphore credentials and generated Terraform state
 local/semaphore/.env
 local/semaphore/.terraform/
+local/semaphore/terraform.tfvars
+local/semaphore/terraform.tfvars.json
 local/semaphore/terraform.tfstate
 local/semaphore/terraform.tfstate.*
 local/semaphore/*.tfstate

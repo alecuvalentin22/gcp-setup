@@ -1,48 +1,36 @@
-# Local Semaphore
+# Local Semaphore project
 
-This Compose project describes the existing local Semaphore 2.19.12 service. It binds only to `127.0.0.1:3000`, uses project `valensys-t2-semaphore`, and explicitly mounts the existing Docker volume `valensys-t2-semaphore_semaphore-data`. Keeping that volume name preserves the current SQLite database and Semaphore workspace.
+This Compose project preserves the existing `valensys-t2-semaphore` service and its `valensys-t2-semaphore_semaphore-data` volume. It binds Semaphore to `127.0.0.1:3000`, adds pinned `helm` and `yq` task tools, and mounts the supplied repository read-only at `/workspace` for local checks. It does not need a cluster or cloud credentials.
 
-## Existing installation: start and stop
+## Existing installation and recovery
 
-The existing installation uses a private credentials file outside this repository. Set `SEMAPHORE_ENV_FILE` to its absolute path in your local shell. The file's location and contents belong in the owner's private operational records, rather than in this repository.
+Keep the existing private credentials file outside this repository. In the shell, set `SEMAPHORE_ENV_FILE` to its path; do not print or copy its contents. Start or rebuild with `local/semaphore/start.sh`, and stop with `local/semaphore/stop.sh`. Stop does not remove volumes. Never use `docker compose down -v` for this installation.
 
-Use that existing file directly; do not print it, copy its values here, or replace it with `.env.example`. From the repository root, first check that the file is available:
+After a checkout or host recovery, confirm the private credentials file and the named Docker volume still exist, then start the service. If the credentials file is missing, restore it from the owner's private backup. If the service image needs recovery, `start.sh` rebuilds the image and reuses the same named volume. Preserve the database and do not migrate it as part of routine recovery.
 
-```sh
-: "${SEMAPHORE_ENV_FILE:?Set this to the existing private credentials file}"
-test -r "$SEMAPHORE_ENV_FILE"
-```
+## Configure the API token
 
-Then, when starting the service is authorized:
+Start Semaphore and sign in at `http://127.0.0.1:3000`. Create an API token for the admin user in the Semaphore UI, then set `SEMAPHOREUI_API_TOKEN` in the current shell or a private shell environment manager. Do not put it in `.env`, `terraform.tfvars`, command arguments, or reports. The provider uses `http://127.0.0.1:3000/api` by default; override with `SEMAPHOREUI_API_BASE_URL` if needed.
 
-```sh
-docker compose --project-name valensys-t2-semaphore \
-  --env-file "$SEMAPHORE_ENV_FILE" \
-  -f local/semaphore/compose.yaml up -d
-```
+The official `semaphoreui/semaphore` Terraform provider manages the project, no-credentials key, repository, local inventory, variable group, and templates. It is pinned to 0.3.9. Its published test matrix covers Semaphore 2.16.x through 2.18.x, not 2.19.12. Before the first apply on this installation, verify the running version from the Semaphore UI or container image metadata (`GET /api/ping` checks reachability only) and perform a read-only `terraform plan`; the parent operator must verify provider compatibility against this 2.19.12 service before applying. Do not proceed to apply if plan or provider refresh fails.
 
-Stop the service while retaining its data:
+## Apply and repeat apply
+
+From the repository root, after the service and token are ready:
 
 ```sh
-docker compose --project-name valensys-t2-semaphore \
-  --env-file "$SEMAPHORE_ENV_FILE" \
-  -f local/semaphore/compose.yaml down
+local/semaphore/apply.sh -var='repository_url=https://github.com/alecuvalentin22/gcp-setup.git' -var='repository_branch=main'
+local/semaphore/apply.sh -var='repository_url=https://github.com/alecuvalentin22/gcp-setup.git' -var='repository_branch=main'
 ```
 
-Do not add `-v` to the stop command: that removes persistent data. After a repository recovery or fresh checkout, confirm the private credentials file remains available in the runtime directory before starting. If it is missing, restore it through the owner's private backup process; the example file contains placeholders and cannot recover the admin password or encryption key. The Docker volume is independent of this repository and must be preserved.
+Review the first plan before confirming apply. The second run should report no changes. Terraform state and provider cache remain local and are ignored by Git. Back up the state privately because it contains Semaphore resource metadata.
 
-## New local installation
+For an immediate local run from the mounted source, override the repository URL with `file:///workspace` and branch with the supplied checkout's current branch. The bind mount is read-only; do not use this local source URL as the public repository connection for normal operation.
 
-For a genuinely new installation only, copy `.env.example` to `.env`, replace both placeholders with private values, then use Compose from this directory. Generate a key with `openssl rand -base64 32`. The root `.gitignore` excludes `.env` and Terraform state.
+## Run a task
 
-## Read-only repository checks
+In Semaphore, open project `gcp-setup`, select one of `YAML syntax`, `Helm lint`, or `Helm render`, then start a task and inspect its result. Each checks only repository files. The scripts are in `tasks/`; task tools are installed in the custom image at pinned Helm 3.16.4 and yq 4.44.3 releases with official checksums verified during build.
 
-From the repository root, these checks validate YAML syntax, lint the podinfo chart for dev and prod, and render both configurations:
+## Host-only verification
 
-```sh
-find . -type f \( -name "*.yaml" -o -name "*.yml" \) ! -path "*/templates/*" ! -path "./.git/*" | while read f; do /opt/homebrew/bin/yq e "." "$f" >/dev/null || { echo "invalid YAML: $f"; exit 1; }; done
-for v in dev prod; do /opt/homebrew/bin/helm lint charts/podinfo-app -f "charts/podinfo-app/values-$v.yaml" || exit 1; done
-for v in dev prod; do /opt/homebrew/bin/helm template podinfo charts/podinfo-app -f "charts/podinfo-app/values-$v.yaml" >/dev/null || exit 1; done
-```
-
-These tasks are local and read-only; they do not access a cluster or cloud credentials.
+The worker environment may not have access to the Docker socket or the running host service. On the operator host, set `SEMAPHORE_ENV_FILE` and optionally `SEMAPHORE_REPOSITORY_PATH` (defaults to this checkout), run `local/semaphore/start.sh`, apply the project, run one validation task, and repeat the apply to verify no drift. Record task result and plan summary without recording the token or credentials. `local/semaphore/stop.sh` stops the service while retaining data.

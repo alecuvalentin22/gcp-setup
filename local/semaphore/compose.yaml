@@ -11,6 +11,7 @@ services:
       - "127.0.0.1:3000:3000"
     volumes:
       - semaphore-data:/var/lib/semaphore
+      - ${SEMAPHORE_REPOSITORY_PATH:?Set SEMAPHORE_REPOSITORY_PATH to the supplied repository root}:/workspace:ro
     environment:
       SEMAPHORE_DB_DIALECT: sqlite
       SEMAPHORE_DB_PATH: /var/lib/semaphore

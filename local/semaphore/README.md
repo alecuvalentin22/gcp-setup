@@ -4,15 +4,20 @@ This Compose project describes the existing local Semaphore 2.19.12 service. It 
 
 ## Existing installation: start and stop
 
-The private runtime credentials are stored outside this repository at:
+The existing installation uses a private credentials file outside this repository. Set `SEMAPHORE_ENV_FILE` to its absolute path in your local shell. The file's location and contents belong in the owner's private operational records, rather than in this repository.
 
-`/Users/valentinalecu/gcp/valensys-instance-gcp-setup/runtime/semaphore-T2/credentials.env`
+Use that existing file directly; do not print it, copy its values here, or replace it with `.env.example`. From the repository root, first check that the file is available:
 
-Use that file directly; do not print it, copy its values here, or replace it with `.env.example`. From the repository root:
+```sh
+: "${SEMAPHORE_ENV_FILE:?Set this to the existing private credentials file}"
+test -r "$SEMAPHORE_ENV_FILE"
+```
+
+Then, when starting the service is authorized:
 
 ```sh
 docker compose --project-name valensys-t2-semaphore \
-  --env-file "/Users/valentinalecu/gcp/valensys-instance-gcp-setup/runtime/semaphore-T2/credentials.env" \
+  --env-file "$SEMAPHORE_ENV_FILE" \
   -f local/semaphore/compose.yaml up -d
 ```
 
@@ -20,7 +25,7 @@ Stop the service while retaining its data:
 
 ```sh
 docker compose --project-name valensys-t2-semaphore \
-  --env-file "/Users/valentinalecu/gcp/valensys-instance-gcp-setup/runtime/semaphore-T2/credentials.env" \
+  --env-file "$SEMAPHORE_ENV_FILE" \
   -f local/semaphore/compose.yaml down
 ```
 

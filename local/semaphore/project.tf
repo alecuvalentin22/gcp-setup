@@ -47,9 +47,23 @@ resource "semaphoreui_project_template" "checks" {
   project_id     = semaphoreui_project.gcp_setup.id
   environment_id = semaphoreui_project_environment.checks.id
   inventory_id   = semaphoreui_project_inventory.local.id
-  repository_id  = semaphoreui_project_repository.source.id
+  repository_id  = semaphoreui_project_repository.local.id
   name           = each.key
   app            = "bash"
   playbook       = each.value
   description    = "Local read-only validation from the supplied repository."
+}
+
+# Plain local paths use Semaphore's local repository mode; no Git push required.
+resource "semaphoreui_project_repository" "local" {
+  project_id = semaphoreui_project.gcp_setup.id
+  name       = "Local read-only checkout"
+  url        = "/workspace"
+  branch     = var.repository_branch
+  ssh_key_id = semaphoreui_project_key.no_key.id
+}
+
+output "project_id" { value = semaphoreui_project.gcp_setup.id }
+output "template_ids" {
+  value = { for name, template in semaphoreui_project_template.checks : name => template.id }
 }

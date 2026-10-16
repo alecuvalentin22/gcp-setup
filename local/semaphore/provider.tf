@@ -1,4 +1,5 @@
 terraform {
+  backend "local" {}
   required_version = ">= 1.5.0"
   required_providers {
     semaphoreui = {
@@ -21,7 +22,7 @@ variable "api_base_url" {
 
 variable "repository_url" {
   type        = string
-  description = "Public HTTPS repository URL, or file:///workspace for host-local validation."
+  description = "Public HTTPS repository connection."
   default     = "https://github.com/alecuvalentin22/gcp-setup.git"
 }
 

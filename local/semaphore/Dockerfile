@@ -16,7 +16,7 @@ RUN set -eu; \
     yq_file="yq_linux_${arch}"; \
     curl -fsSLo /tmp/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${yq_file}"; \
     curl -fsSLo /tmp/yq.sha256 "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/checksums"; \
-    expected="$(awk -v f="$yq_file" '$2 == f {print $1}' /tmp/yq.sha256)"; \
+    expected="$(awk -v f="$yq_file" '$1 == f {print $19}' /tmp/yq.sha256)"; \
     test -n "$expected"; printf '%s  %s\n' "$expected" /tmp/yq | sha256sum -c -; \
     install -m 0755 /tmp/yq /usr/local/bin/yq; rm -rf "/tmp/${helm_file}" "/tmp/${helm_file}.sha256sum" /tmp/linux-* /tmp/yq /tmp/yq.sha256
 

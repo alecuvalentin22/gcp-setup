@@ -10,3 +10,5 @@ local/semaphore/*.tfstate.*
 *.tfstate
 *.tfstate.*
 **/.terraform/**
+
+local/semaphore/__pycache__/

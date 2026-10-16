@@ -92,13 +92,13 @@ def authenticate():
     return opener, token
 
 
-def terraform(token, extra):
+def terraform(token, extra, approve=False):
     env = dict(os.environ, SEMAPHOREUI_API_TOKEN=token, TF_DATA_DIR=str(STATE / 'terraform-data'))
     prefix = ['terraform', '-chdir=' + str(HERE)]
     run(prefix + ['init', '-input=false', '-lockfile=readonly', '-backend-config=path=' + str(STATE / 'terraform.tfstate')], env=env)
     plan_file = STATE / 'apply.tfplan'
     run(prefix + ['plan', '-input=false', '-no-color', '-out=' + str(plan_file)] + extra, env=env)
-    if '-auto-approve' not in extra:
+    if not approve:
         answer = input('Apply the Terraform plan? [y/N] ').strip().lower()
         if answer not in ('y', 'yes'):
             raise RuntimeError('Apply cancelled')
@@ -161,7 +161,7 @@ def main():
     if args.command == 'verify':
         outputs = json.loads((STATE / 'outputs.json').read_text())
     else:
-        outputs = terraform(token, (['-auto-approve'] if args.yes else []) + extra)
+        outputs = terraform(token, extra, approve=args.yes)
         private_json(STATE / 'outputs.json', outputs)
     if args.command in ('setup', 'verify'):
         verify(opener, token, outputs)

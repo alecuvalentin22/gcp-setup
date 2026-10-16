@@ -1,0 +1,25 @@
+name: valensys-t2-semaphore
+
+services:
+  semaphore:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: valensys-semaphore:2.19.12
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - semaphore-data:/var/lib/semaphore
+    environment:
+      SEMAPHORE_DB_DIALECT: sqlite
+      SEMAPHORE_DB_PATH: /var/lib/semaphore
+      SEMAPHORE_ADMIN: admin
+      SEMAPHORE_ADMIN_NAME: Admin
+      SEMAPHORE_ADMIN_EMAIL: admin@localhost
+      SEMAPHORE_ADMIN_PASSWORD: ${SEMAPHORE_ADMIN_PASSWORD:?Set SEMAPHORE_ADMIN_PASSWORD in .env}
+      SEMAPHORE_ACCESS_KEY_ENCRYPTION: ${SEMAPHORE_ACCESS_KEY_ENCRYPTION:?Set SEMAPHORE_ACCESS_KEY_ENCRYPTION in .env}
+
+volumes:
+  semaphore-data:
+    name: valensys-t2-semaphore_semaphore-data

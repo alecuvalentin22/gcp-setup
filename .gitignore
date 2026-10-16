@@ -1,0 +1,10 @@
+# Local Semaphore credentials and generated Terraform state
+local/semaphore/.env
+local/semaphore/.terraform/
+local/semaphore/terraform.tfstate
+local/semaphore/terraform.tfstate.*
+local/semaphore/*.tfstate
+local/semaphore/*.tfstate.*
+*.tfstate
+*.tfstate.*
+**/.terraform/**
